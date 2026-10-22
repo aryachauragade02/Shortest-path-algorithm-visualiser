@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shortest Path Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!--BODY-START-->
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <span class="eyebrow">Design &amp; Analysis of Algorithms · Mini Project</span>
+      <h1>Shortest Path Finder <span class="amp">&amp;</span> Algorithm Visualizer</h1>
+      <p>Draw walls and weights on a grid, then watch Dijkstra, A*, BFS, DFS and Greedy Best-First search for the target. Switch to the graph view to step through Dijkstra and Bellman–Ford one relaxation at a time.</p>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button role="tab" id="tabbtn-grid" aria-controls="tab-grid" aria-selected="true" data-tab="grid">Grid visualizer</button>
+      <button role="tab" id="tabbtn-graph" aria-controls="tab-graph" aria-selected="false" data-tab="graph">Graph step-through</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ================= GRID VISUALIZER ================= -->
+  <section id="tab-grid" class="panel" role="tabpanel" aria-labelledby="tabbtn-grid">
+    <div class="toolbar">
+      <div class="field">
+        <label for="algo">Algorithm</label>
+        <select id="algo">
+          <option value="dijkstra">Dijkstra's algorithm</option>
+          <option value="astar">A* search</option>
+          <option value="bfs">Breadth-first search</option>
+          <option value="dfs">Depth-first search</option>
+          <option value="greedy">Greedy best-first</option>
+        </select>
+      </div>
+      <button class="btn primary" id="run" type="button">Visualize</button>
+      <div class="field">
+        <span class="label" id="tool-label">Draw</span>
+        <div class="seg" role="radiogroup" aria-labelledby="tool-label">
+          <button type="button" role="radio" aria-checked="true" data-tool="wall" id="tool-wall"><span class="swatch sw-wall"></span>Wall</button>
+          <button type="button" role="radio" aria-checked="false" data-tool="weight" id="tool-weight"><span class="swatch sw-weight"></span>Weight ×5</button>
+          <button type="button" role="radio" aria-checked="false" data-tool="erase" id="tool-erase"><span class="swatch sw-erase"></span>Erase</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="maze">Generate</label>
+        <select id="maze">
+          <option value="">Choose a pattern…</option>
+          <option value="division">Recursive-division maze</option>
+          <option value="random">Random walls (28%)</option>
+          <option value="weights">Random weights (25%)</option>
+          <option value="both">Random walls + weights</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="speed">Speed</label>
+        <input type="range" id="speed" min="1" max="5" value="3" step="1">
+      </div>
+      <div class="spacer"></div>
+      <div class="actions">
+        <button class="btn" id="clearPath" type="button">Clear path</button>
+        <button class="btn" id="clearBoard" type="button">Clear board</button>
+      </div>
+    </div>
+
+    <div class="legend" aria-label="Legend">
+      <span><i class="lg lg-start"></i>Start</span>
+      <span><i class="lg lg-end"></i>Target</span>
+      <span><i class="lg lg-frontier"></i>Frontier (in queue)</span>
+      <span><i class="lg lg-visited"></i>Visited</span>
+      <span><i class="lg lg-path"></i>Shortest path</span>
+      <span><i class="lg lg-wall"></i>Wall</span>
+      <span><i class="lg lg-weight"></i>Weight (cost 5)</span>
+    </div>
+
+    <div class="board-wrap"><canvas id="board" aria-label="Pathfinding grid. Drag on it to draw walls or weights."></canvas></div>
+    <p class="hint">Drag across the grid to draw. Drag the start or target to move them; after a run the path recomputes live while you drag.</p>
+
+    <div class="readouts">
+      <div class="card">
+        <h2>Run statistics</h2>
+        <p class="sub" id="statAlgo">Press Visualize to run the selected algorithm.</p>
+        <dl class="stats">
+          <div><dt>Nodes visited</dt><dd id="statVisited">—</dd></div>
+          <div><dt>Path length</dt><dd id="statSteps">—</dd></div>
+          <div><dt>Path cost</dt><dd id="statCost">—</dd></div>
+          <div><dt>Compute time</dt><dd id="statTime">—</dd></div>
+        </dl>
+        <p class="status" id="statStatus" role="status"></p>
+      </div>
+      <div class="card" id="info">
+        <h2 id="infoName">Dijkstra's algorithm</h2>
+        <p class="sub" id="infoDesc"></p>
+        <div class="chips" id="infoChips"></div>
+        <table class="cx"><tbody id="infoTable"></tbody></table>
+        <pre class="code" id="infoCode"></pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="compare-head">
+        <div>
+          <h2>Compare all five on this grid</h2>
+          <p class="sub">Each algorithm runs 25 times on the current board; time is the average. Select a row to show that algorithm's result on the board.</p>
+        </div>
+        <button class="btn" id="compare" type="button">Run comparison</button>
+      </div>
+      <div class="table-scroll">
+        <table class="data">
+          <thead><tr><th>Algorithm</th><th class="num">Visited</th><th class="num">Path length</th><th class="num">Path cost</th><th class="num">Avg time (ms)</th><th>Optimal cost?</th></tr></thead>
+          <tbody id="compareBody"><tr class="empty-row"><td colspan="6">Run the comparison to fill this table.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= GRAPH STEP-THROUGH ================= -->
+  <section id="tab-graph" class="panel" role="tabpanel" aria-labelledby="tabbtn-graph" hidden>
+    <div class="toolbar">
+      <div class="field">
+        <label for="gPreset">Graph</label>
+        <select id="gPreset">
+          <option value="city">City network (8 vertices, undirected)</option>
+          <option value="negative">Negative edge (5 vertices, directed)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="gAlgo">Algorithm</label>
+        <select id="gAlgo">
+          <option value="dijkstra">Dijkstra (array, O(V²))</option>
+          <option value="bellman">Bellman–Ford (O(VE))</option>
+        </select>
+      </div>
+      <div class="field"><label for="gSrc">Source</label><select id="gSrc"></select></div>
+      <div class="field"><label for="gTgt">Target</label><select id="gTgt"></select></div>
+    </div>
+
+    <div class="graph-layout">
+      <div class="stack">
+        <div class="svg-wrap"><svg id="graph" viewBox="0 0 700 380" role="img" aria-label="Weighted graph"></svg></div>
+        <div class="stepper">
+          <button class="btn" id="gFirst" type="button" aria-label="First step">⏮ Start</button>
+          <button class="btn" id="gPrev" type="button">◀ Prev</button>
+          <button class="btn primary" id="gPlay" type="button">Play</button>
+          <button class="btn" id="gNext" type="button">Next ▶</button>
+          <button class="btn" id="gLast" type="button" aria-label="Last step">End ⏭</button>
+          <span class="count" id="gCount">Step 1 / 1</span>
+        </div>
+        <p class="log" id="gLog" aria-live="polite"></p>
+        <p class="result-line" id="gResult"></p>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <h3 id="gQueueTitle">Priority queue Q (by d)</h3>
+          <div class="queue" id="gQueue"></div>
+        </div>
+        <div class="card">
+          <h3>Distance table</h3>
+          <div class="table-scroll" style="margin-top:0">
+            <table class="dist"><thead><tr><th>Vertex</th><th>d[v]</th><th>prev[v]</th><th>State</th></tr></thead><tbody id="gTable"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>All-pairs shortest paths (Floyd–Warshall)</h2>
+      <p class="sub">Dynamic programming over intermediate vertices k: d<sub>k</sub>[i][j] = min(d<sub>k−1</sub>[i][j], d<sub>k−1</sub>[i][k] + d<sub>k−1</sub>[k][j]). Row = from, column = to. Runs in O(V³).</p>
+      <div class="table-scroll"><table class="matrix" id="fwMatrix"></table></div>
+    </div>
+  </section>
+
+  <footer class="foot">Built with HTML5 Canvas, SVG and plain JavaScript. No libraries.</footer>
+</main>
+<!--BODY-END-->
+<script src="js/algorithms.js"></script>
+<script src="js/grid-visualizer.js"></script>
+<script src="js/graph-visualizer.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
